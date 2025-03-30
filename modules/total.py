@@ -19,7 +19,7 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 import plotly.io as pio
 from PIL import Image as PILImage
 from jinja2 import Template
-import weasyprint
+#import weasyprint
 import tempfile
 
 # Importar funciones comunes de individuales.py
@@ -1202,7 +1202,7 @@ def generar_pdf_html(jugador_seleccionado, info_jugador, total_stats, precision_
         tmp_path = tmp.name
     
     # Generar PDF a partir del HTML
-    pdf = weasyprint.HTML(filename=tmp_path).write_pdf()
+    #pdf = weasyprint.HTML(filename=tmp_path).write_pdf()
     
     # Eliminar archivo temporal
     os.unlink(tmp_path)
