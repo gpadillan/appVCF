@@ -1,0 +1,50 @@
+{
+    "admin": {
+        "password": "1234",
+        "role": "admin",
+        "nombre": "Administrador",
+        "equipo_id": null
+    },
+    "valenciam": {
+        "password": "vcf2024",
+        "role": "equipo",
+        "nombre": "Valencia Mestalla",
+        "equipo_id": "mestalla"
+    },
+    "juvenila": {
+        "password": "vcf2024",
+        "role": "equipo",
+        "nombre": "Juvenil A",
+        "equipo_id": "juvenila"
+    },
+    "juvenilb": {
+        "password": "vcf2024",
+        "role": "equipo",
+        "nombre": "Juvenil B",
+        "equipo_id": "juvenilb"
+    },
+    "cadetea": {
+        "password": "vcf2024",
+        "role": "equipo",
+        "nombre": "Cadete A",
+        "equipo_id": "cadetea"
+    },
+    "cadeteb": {
+        "password": "vcf2024",
+        "role": "equipo",
+        "nombre": "Cadete B",
+        "equipo_id": "cadeteb"
+    },
+    "infantila": {
+        "password": "vcf2024",
+        "role": "equipo",
+        "nombre": "Infantil A",
+        "equipo_id": "infantila"
+    },
+    "infantilb": {
+        "password": "vcf2024",
+        "role": "equipo",
+        "nombre": "Infantil B",
+        "equipo_id": "infantilb"
+    }
+}

@@ -1,0 +1,29 @@
+[
+    {
+        "id": "23eb75dd-f708-4e5a-ab85-e24930ecd53c",
+        "nombre": "Alain",
+        "equipo": "Juvenil A",
+        "temporada": "24/25",
+        "posicion": "Portero",
+        "foto": "23eb75dd-f708-4e5a-ab85-e24930ecd53c.jpg",
+        "fecha_actualizacion": "2025-03-12 18:32:52"
+    },
+    {
+        "id": "60a48b09-2d30-4962-a8d0-c7bcf950f046",
+        "nombre": "Raul Jimenez",
+        "equipo": "Juvenil A",
+        "temporada": "24/25",
+        "posicion": "Portero",
+        "foto": "60a48b09-2d30-4962-a8d0-c7bcf950f046.jpg",
+        "fecha_actualizacion": "2025-03-12 18:33:11"
+    },
+    {
+        "id": "9213f40c-d927-4bfb-a950-d01747589ff2",
+        "nombre": "Jaume",
+        "equipo": "Juvenil A",
+        "temporada": "24/25",
+        "posicion": "Centrocampista",
+        "foto": "9213f40c-d927-4bfb-a950-d01747589ff2.jpg",
+        "fecha_actualizacion": "2025-03-12 18:33:23"
+    }
+]
