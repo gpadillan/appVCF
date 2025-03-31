@@ -21,7 +21,7 @@ import plotly.io as pio
 from PIL import Image as PILImage
 # Importaciones para HTML/PDF
 from jinja2 import Template
-#import weasyprint
+import weasyprint
 import tempfile
 from datetime import datetime
 
@@ -1144,7 +1144,7 @@ def generar_pdf_html(jugador_seleccionado, info_jugador, minutos_jugados,
         tmp_path = tmp.name
     
     # Generar PDF a partir del HTML
-    #pdf = weasyprint.HTML(filename=tmp_path).write_pdf()
+    pdf = weasyprint.HTML(filename=tmp_path).write_pdf()
     
     # Eliminar archivo temporal
     os.unlink(tmp_path)
@@ -1461,7 +1461,7 @@ def generar_pdf_html_portero(jugador_seleccionado, info_jugador, minutos_jugados
         tmp_path = tmp.name
     
     # Generar PDF a partir del HTML
-    #pdf = weasyprint.HTML(filename=tmp_path).write_pdf()
+    pdf = weasyprint.HTML(filename=tmp_path).write_pdf()
     
     # Eliminar archivo temporal
     os.unlink(tmp_path)

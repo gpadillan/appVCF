@@ -9,18 +9,8 @@ import base64
 from datetime import datetime
 import random
 import io
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib import colors
-from reportlab.lib.units import inch, cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
 import plotly.io as pio
 from PIL import Image as PILImage
-from jinja2 import Template
-#import weasyprint
-import tempfile
 
 # Importar funciones comunes de individuales.py
 from modules.individuales import encontrar_jugador_plantilla, obtener_foto_jugador
@@ -572,7 +562,6 @@ def mostrar_visualizaciones(total_stats, es_portero):
     
     # Crear gráficos de distribución
     col1, col2 = st.columns(2)
-    charts = {}  # Diccionario para almacenar gráficos para el PDF
     
     with col1:
         # Gráfico de distribución de pases
@@ -610,100 +599,44 @@ def mostrar_visualizaciones(total_stats, es_portero):
             )
             
             st.plotly_chart(fig, use_container_width=True)
-            
-            # Capturar gráfico para PDF
-            try:
-                charts['distribucion_pases'] = capturar_graficos_plotly(fig)
-            except Exception as e:
-                st.warning(f"No se pudo capturar el gráfico de pases: {str(e)}")
     
     with col2:
-        if es_portero:
-            # Para porteros: distribución de paradas vs goles recibidos
-            paradas = total_stats['paradas']
-            goles_recibidos = total_stats['goles_recibidos']
-            tiros_recibidos_fuera = total_stats['tiros_recibidos_fuera']
-            total_tiros = paradas + goles_recibidos + tiros_recibidos_fuera
+        # Siempre mostrar finalizaciones
+        goles = total_stats['goles']
+        tiros_puerta = total_stats['tiros_puerta'] - goles  # Restamos goles para no contar doble
+        tiros_fuera = total_stats['tiros_fuera']
+        total_finalizaciones = goles + tiros_puerta + tiros_fuera
+        
+        if total_finalizaciones > 0:
+            efectividad = round((goles / (goles + tiros_puerta)) * 100, 1) if (goles + tiros_puerta) > 0 else 0
             
-            if total_tiros > 0:
-                efectividad = round((paradas / (paradas + goles_recibidos)) * 100, 1) if (paradas + goles_recibidos) > 0 else 0
-                
-                fig = go.Figure()
-                fig.add_trace(go.Pie(
-                    labels=["Fuera", "Goles", "A puerta"],
-                    values=[tiros_recibidos_fuera, goles_recibidos, paradas],
-                    hole=0.7,
-                    marker=dict(colors=[COLOR_TIROS_FUERA, COLOR_GOLES, COLOR_TIROS_PUERTA]),
-                    textinfo='percent',
-                    hoverinfo='label+value'
-                ))
-                
-                fig.update_layout(
-                    title="Tiros Recibidos",
-                    annotations=[
-                        dict(
-                            text=f"{efectividad}%<br>efectividad",
-                            x=0.5, y=0.5,
-                            font_size=15,
-                            showarrow=False
-                        )
-                    ],
-                    showlegend=True,
-                    legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
-                    height=350,
-                    margin=dict(l=30, r=30, t=50, b=50)
-                )
-                
-                st.plotly_chart(fig, use_container_width=True)
-                
-                # Capturar gráfico para PDF
-                try:
-                    charts['tiros_chart'] = capturar_graficos_plotly(fig)
-                except Exception as e:
-                    st.warning(f"No se pudo capturar el gráfico de tiros: {str(e)}")
-        else:
-            # Para jugadores de campo: distribución de finalizaciones
-            goles = total_stats['goles']
-            tiros_puerta = total_stats['tiros_puerta'] - goles  # Restamos goles para no contar doble
-            tiros_fuera = total_stats['tiros_fuera']
-            total_finalizaciones = goles + tiros_puerta + tiros_fuera
+            fig = go.Figure()
+            fig.add_trace(go.Pie(
+                labels=["Fuera", "Goles", "A puerta"],
+                values=[tiros_fuera, goles, tiros_puerta],
+                hole=0.7,
+                marker=dict(colors=[COLOR_TIROS_FUERA, COLOR_GOLES, COLOR_TIROS_PUERTA]),
+                textinfo='percent',
+                hoverinfo='label+value'
+            ))
             
-            if total_finalizaciones > 0:
-                efectividad = round((goles / (goles + tiros_puerta)) * 100, 1) if (goles + tiros_puerta) > 0 else 0
-                
-                fig = go.Figure()
-                fig.add_trace(go.Pie(
-                    labels=["Fuera", "Goles", "A puerta"],
-                    values=[tiros_fuera, goles, tiros_puerta],
-                    hole=0.7,
-                    marker=dict(colors=[COLOR_TIROS_FUERA, COLOR_GOLES, COLOR_TIROS_PUERTA]),
-                    textinfo='percent',
-                    hoverinfo='label+value'
-                ))
-                
-                fig.update_layout(
-                    title="Finalizaciones",
-                    annotations=[
-                        dict(
-                            text=f"{efectividad}%<br>efectividad",
-                            x=0.5, y=0.5,
-                            font_size=15,
-                            showarrow=False
-                        )
-                    ],
-                    showlegend=True,
-                    legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
-                    height=350,
-                    margin=dict(l=30, r=30, t=50, b=50)
-                )
-                
-                st.plotly_chart(fig, use_container_width=True)
-                
-                # Capturar gráfico para PDF
-                try:
-                    charts['finalizaciones_chart'] = capturar_graficos_plotly(fig)
-                except Exception as e:
-                    st.warning(f"No se pudo capturar el gráfico de finalizaciones: {str(e)}")
+            fig.update_layout(
+                title="Finalizaciones",
+                annotations=[
+                    dict(
+                        text=f"{efectividad}%<br>efectividad",
+                        x=0.5, y=0.5,
+                        font_size=15,
+                        showarrow=False
+                    )
+                ],
+                showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+                height=350,
+                margin=dict(l=30, r=30, t=50, b=50)
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
 
     # Mostrar resumen de acciones con gráfico de barras
     st.markdown("<div class='vis-header'>Resumen de Acciones</div>", unsafe_allow_html=True)
@@ -776,438 +709,8 @@ def mostrar_visualizaciones(total_stats, es_portero):
         )
         
         st.plotly_chart(fig, use_container_width=True)
-        
-        # Capturar gráfico para PDF
-        try:
-            charts['resumen_acciones'] = capturar_graficos_plotly(fig)
-        except Exception as e:
-            st.warning(f"No se pudo capturar el gráfico de resumen: {str(e)}")
-            
-    return charts
-
-# Función para capturar gráficos de plotly
-def capturar_graficos_plotly(fig):
-    """
-    Captura un gráfico de plotly y lo convierte a base64 con mejor gestión de errores
-    """
-    try:
-        # Configurar pio explícitamente para usar kaleido
-        import plotly.io as pio
-        pio.kaleido.scope.default_format = "png"
-        pio.kaleido.scope.default_width = 800
-        pio.kaleido.scope.default_height = 500
-        pio.kaleido.scope.default_scale = 1.0
-        
-        # Intenta usar la forma básica
-        img_bytes = pio.to_image(fig, format="png")
-        return base64.b64encode(img_bytes).decode('utf-8')
-    except Exception as e:
-        print(f"Error principal al capturar gráfico: {e}")
-        
-        # Alternativa directa con matplotlib
-        try:
-            buffer = io.BytesIO()
-            
-            # Crear una versión simplificada del gráfico con matplotlib
-            import matplotlib.pyplot as plt
-            plt.figure(figsize=(8, 6))
-            
-            # Crear un gráfico simple basado en el tipo de gráfico Plotly
-            if 'pie' in str(fig.data[0]).lower():
-                # Es un gráfico circular
-                labels = fig.data[0].labels if hasattr(fig.data[0], 'labels') and fig.data[0].labels else []
-                values = fig.data[0].values if hasattr(fig.data[0], 'values') and fig.data[0].values else []
-                
-                plt.pie(values, labels=labels, autopct='%1.1f%%')
-                plt.axis('equal')
-                
-            elif 'bar' in str(fig.data[0]).lower():
-                # Es un gráfico de barras
-                x_vals = fig.data[0].x if hasattr(fig.data[0], 'x') and fig.data[0].x else []
-                y_vals = fig.data[0].y if hasattr(fig.data[0], 'y') and fig.data[0].y else []
-                
-                plt.bar(x_vals, y_vals)
-                plt.xticks(rotation=45, ha='right')
-                plt.tight_layout()
-            
-            # Título básico
-            plt.title("Gráfico generado como respaldo")
-            
-            # Guardar y codificar
-            plt.savefig(buffer, format='png', bbox_inches='tight')
-            plt.close()
-            buffer.seek(0)
-            return base64.b64encode(buffer.getvalue()).decode('utf-8')
-            
-        except Exception as e2:
-            print(f"Error con el método alternativo: {e2}")
-            return None
-
-# Función para crear botón de descarga PDF
-def crear_boton_descargar_pdf(pdf_data, filename="analisis_acumulado_jugador.pdf"):
-    """
-    Crea un botón para descargar el PDF generado
     
-    Args:
-        pdf_data: Datos del PDF en bytes
-        filename: Nombre del archivo a descargar
-    """
-    b64 = base64.b64encode(pdf_data).decode()
-    href = f'<a href="data:application/octet-stream;base64,{b64}" download="{filename}" style="text-decoration:none;">'\
-           f'<div style="background-color:#ff6600; padding:10px 15px; color:white; '\
-           f'font-weight:bold; border-radius:5px; text-align:center; margin:20px 0;">' \
-           f'📥 Descargar Informe en PDF</div></a>'
-    return href
-
-# Función para generar PDF con HTML para jugadores regulares
-def generar_pdf_html(jugador_seleccionado, info_jugador, total_stats, precision_pases, 
-                     indice_rendimiento, num_partidos, partidos_info, charts, es_portero):
-    """
-    Genera un PDF con diseño HTML personalizado, similar a la interfaz web
-    
-    Returns:
-        bytes: PDF generado en bytes
-    """
-    # HTML Template usando Jinja2
-    html_template = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Análisis Acumulado de {{ jugador_nombre }}</title>
-        <style>
-            @page {
-                size: A4;
-                margin: 2cm;
-            }
-            body {
-                font-family: 'Arial', sans-serif;
-                color: #333;
-                line-height: 1.6;
-                padding: 0;
-                margin: 0;
-            }
-            .page {
-                page-break-after: always;
-                padding: 20px;
-            }
-            .last-page {
-                page-break-after: avoid;
-            }
-            .header {
-                font-size: 28px;
-                font-weight: bold;
-                color: #1a5276;
-                margin-bottom: 20px;
-                border-bottom: 2px solid #ff6600;
-                padding-bottom: 8px;
-            }
-            .player-card {
-                background-color: #1a5276;
-                color: white;
-                padding: 20px;
-                border-radius: 8px;
-                margin-bottom: 20px;
-                display: flex;
-                align-items: center;
-            }
-            .player-photo {
-                width: 80px;
-                height: 80px;
-                border-radius: 50%;
-                border: 3px solid #ff6600;
-                object-fit: cover;
-                margin-right: 20px;
-            }
-            .player-info {
-                flex-grow: 1;
-            }
-            .player-name {
-                font-size: 24px;
-                font-weight: bold;
-            }
-            .player-team {
-                font-size: 16px;
-                opacity: 0.8;
-            }
-            .player-position {
-                background-color: #ff6600;
-                color: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                display: inline-block;
-                margin-top: 5px;
-                font-size: 14px;
-            }
-            .section-header {
-                font-size: 20px;
-                color: #1a5276;
-                margin: 20px 0 10px 0;
-                padding-bottom: 5px;
-                border-bottom: 1px solid #ddd;
-            }
-            .metrics-container {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 10px;
-                margin-bottom: 20px;
-            }
-            .metric-box {
-                background-color: #f8f9fa;
-                border-radius: 5px;
-                padding: 10px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            }
-            .metric-title {
-                font-size: 16px;
-                color: #666;
-                margin-bottom: 5px;
-            }
-            .metric-value {
-                font-size: 26px;
-                font-weight: bold;
-                color: #ff6600;
-            }
-            .metric-subtitle {
-                font-size: 14px;
-                color: #666;
-            }
-            .charts-container {
-                margin-bottom: 20px;
-            }
-            .chart-row {
-                display: flex;
-                gap: 20px;
-                margin-bottom: 20px;
-                justify-content: center;
-            }
-            .chart-box {
-                background-color: white;
-                border-radius: 8px;
-                padding: 15px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-                flex: 1;
-                max-width: 45%;
-            }
-            .chart-full {
-                width: 90%;
-                margin: 0 auto 20px auto;
-            }
-            .chart-img {
-                width: 100%;
-                height: auto;
-                border-radius: 8px;
-            }
-            .full-width-chart {
-                width: 90%;
-                margin: 0 auto;
-            }
-            .footer {
-                font-size: 12px;
-                color: #666;
-                text-align: center;
-                margin-top: 40px;
-                border-top: 1px solid #ddd;
-                padding-top: 10px;
-            }
-            .matches-info {
-                font-size: 14px;
-                color: #666;
-                background-color: #f8f9fa;
-                padding: 15px;
-                border-radius: 5px;
-                margin-top: 20px;
-            }
-        </style>
-    </head>
-    <body>
-        <!-- PÁGINA 1: Información básica y métricas -->
-        <div class="page">
-            <div class="header">📊 Análisis Acumulado: {{ jugador_nombre }}</div>
-            
-            <!-- Tarjeta del jugador -->
-            <div class="player-card">
-                {% if foto_jugador %}
-                <img src="data:image/png;base64,{{ foto_jugador }}" class="player-photo" alt="{{ jugador_nombre }}">
-                {% else %}
-                <div style="width: 80px; height: 80px; border-radius: 50%; background-color: #ff6600; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: white; margin-right: 20px;">{{ iniciales }}</div>
-                {% endif %}
-                <div class="player-info">
-                    <div class="player-name">{{ jugador_nombre }}</div>
-                    <div class="player-team">Valencia CF</div>
-                    {% if posicion %}
-                    <div class="player-position">{{ posicion }}</div>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <!-- Métricas clave -->
-            <div class="section-header">Métricas Acumuladas</div>
-            
-            <div class="metrics-container">
-                <!-- Fila 1 -->
-                <div class="metric-box">
-                    <div class="metric-title">Minutos Jugados (M.J.)</div>
-                    <div class="metric-value">{{ minutos_jugados }}</div>
-                    <div class="metric-subtitle">En {{ num_partidos }} partido{% if num_partidos != 1 %}s{% endif %}</div>
-                </div>
-                
-                <div class="metric-box">
-                    <div class="metric-title">Pases Completados</div>
-                    <div class="metric-value">{{ pases_completados }}</div>
-                    <div class="metric-subtitle">{{ precision_pases }}% de precisión</div>
-                </div>
-                
-                {% if es_portero %}
-                <div class="metric-box">
-                    <div class="metric-title">Paradas</div>
-                    <div class="metric-value">{{ paradas }}</div>
-                    <div class="metric-subtitle">{{ porcentaje_paradas }}% de efectividad</div>
-                </div>
-                {% else %}
-                <div class="metric-box">
-                    <div class="metric-title">Finalizaciones</div>
-                    <div class="metric-value">{{ finalizaciones_totales }}</div>
-                    <div class="metric-subtitle">{{ goles }} gol{% if goles != 1 %}es{% endif %}</div>
-                </div>
-                {% endif %}
-                
-                <div class="metric-box">
-                    <div class="metric-title">Índice Rendimiento</div>
-                    <div class="metric-value">{{ indice_rendimiento }}</div>
-                </div>
-                
-                <!-- Fila 2 -->
-                <div class="metric-box">
-                    <div class="metric-title">Pases Fallados</div>
-                    <div class="metric-value">{{ pases_fallados }}</div>
-                </div>
-                
-                <div class="metric-box">
-                    <div class="metric-title">Encontrar Futbolista</div>
-                    <div class="metric-value">{{ encontrar_total }}</div>
-                    <div class="metric-subtitle">{{ encontrar_profundidad }} en profundidad</div>
-                </div>
-                
-                <div class="metric-box">
-                    <div class="metric-title">Atacar el área</div>
-                    <div class="metric-value">{{ atacar_area }}</div>
-                </div>
-                
-                <div class="metric-box">
-                    <div class="metric-title">Faltas Cometidas</div>
-                    <div class="metric-value">{{ faltas }}</div>
-                </div>
-            </div>
-            
-            <!-- Información de partidos analizados -->
-            <div class="matches-info">
-                <strong>Datos acumulados de {{ num_partidos }} partido{% if num_partidos != 1 %}s{% endif %}:</strong> 
-                {{ partidos_info }}
-            </div>
-        </div>
-        
-        <!-- PÁGINA 2: Visualizaciones de Rendimiento -->
-        <div class="page">
-            <div class="section-header">Visualización de Rendimiento</div>
-            
-            <!-- Gráficos en una fila -->
-            <div class="chart-row">
-                {% if chart_pases %}
-                <div class="chart-box">
-                    <img src="data:image/png;base64,{{ chart_pases }}" class="chart-img" alt="Distribución de Pases">
-                </div>
-                {% endif %}
-                
-                {% if es_portero and chart_tiros %}
-                <div class="chart-box">
-                    <img src="data:image/png;base64,{{ chart_tiros }}" class="chart-img" alt="Tiros Recibidos">
-                </div>
-                {% elif not es_portero and chart_finalizaciones %}
-                <div class="chart-box">
-                    <img src="data:image/png;base64,{{ chart_finalizaciones }}" class="chart-img" alt="Finalizaciones">
-                </div>
-                {% endif %}
-            </div>
-            
-            <!-- Gráfico de resumen (ancho completo) -->
-            {% if chart_resumen %}
-            <div class="chart-full">
-                <img src="data:image/png;base64,{{ chart_resumen }}" class="chart-img" alt="Resumen de Acciones">
-            </div>
-            {% endif %}
-            
-            <div class="footer">
-                <p>Informe generado para Valencia CF | Fecha: {{ fecha_generacion }}</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    
-    # Preparar datos para la plantilla
-    # Calcular iniciales del jugador
-    nombre_display = info_jugador.get("nombre", "") if info_jugador else jugador_seleccionado
-    if ". " in nombre_display:
-        nombre_display = nombre_display.split(". ", 1)[1]
-    iniciales = "".join([n[0] for n in nombre_display[0:2].upper()])
-    
-    # Formatear texto de partidos para evitar que sea muy largo
-    if len(partidos_info) > 100:
-        partidos_info_texto = ', '.join(partidos_info[:3]) + '...'
-    else:
-        partidos_info_texto = ', '.join(partidos_info)
-    
-    # Calcular porcentaje de paradas para porteros
-    porcentaje_paradas = 0
-    if es_portero and (total_stats['paradas'] + total_stats['goles_recibidos']) > 0:
-        porcentaje_paradas = round((total_stats['paradas'] / (total_stats['paradas'] + total_stats['goles_recibidos']) * 100), 1)
-    
-    # Datos para el template
-    template_data = {
-        'jugador_nombre': nombre_display,
-        'iniciales': iniciales,
-        'posicion': info_jugador.get("posicion", "") if info_jugador else "",
-        'foto_jugador': charts.get('foto_jugador', None),
-        'num_partidos': num_partidos,
-        'minutos_jugados': total_stats['minutos'],
-        'pases_completados': total_stats['pases_completados'],
-        'precision_pases': f"{precision_pases:.1f}",
-        'pases_fallados': total_stats['pases_fallados'],
-        'finalizaciones_totales': total_stats['finalizaciones'],
-        'goles': total_stats['goles'],
-        'paradas': total_stats['paradas'],
-        'porcentaje_paradas': f"{porcentaje_paradas:.1f}",
-        'encontrar_profundidad': total_stats['profundidad'],
-        'encontrar_total': total_stats['profundidad'] + total_stats['cara'],
-        'atacar_area': total_stats['area'],
-        'faltas': total_stats['faltas'],
-        'indice_rendimiento': f"{indice_rendimiento:.1f}",
-        'chart_pases': charts.get('distribucion_pases', None),
-        'chart_finalizaciones': charts.get('finalizaciones_chart', None),
-        'chart_tiros': charts.get('tiros_chart', None),
-        'chart_resumen': charts.get('resumen_acciones', None),
-        'es_portero': es_portero,
-        'partidos_info': partidos_info_texto,
-        'fecha_generacion': datetime.now().strftime("%d/%m/%Y %H:%M")
-    }
-    
-    # Renderizar el HTML con Jinja2
-    template = Template(html_template)
-    html_content = template.render(**template_data)
-    
-    # Guardar el HTML temporalmente
-    with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as tmp:
-        tmp.write(html_content.encode('utf-8'))
-        tmp_path = tmp.name
-    
-    # Generar PDF a partir del HTML
-    #pdf = weasyprint.HTML(filename=tmp_path).write_pdf()
-    
-    # Eliminar archivo temporal
-    os.unlink(tmp_path)
-    
-    return pdf
+    return {}
 
 # Función principal que combina todo
 def pagina_datos_totales():
@@ -1272,7 +775,7 @@ def pagina_datos_totales():
     precision_pases, indice_rendimiento = mostrar_metricas_clave(total_stats, es_portero, len(datos_partidos))
     
     # 10. Mostrar visualizaciones estilo individuales.py
-    charts = mostrar_visualizaciones(total_stats, es_portero)
+    mostrar_visualizaciones(total_stats, es_portero)
     
     # 11. Mostrar información sobre los partidos analizados
     partidos_info = [f"{p['fecha'].strftime('%d/%m/%Y') if p['fecha'] else 'Sin fecha'} vs {p['rival']}" for p in datos_partidos]
@@ -1282,34 +785,7 @@ def pagina_datos_totales():
     </div>
     """, unsafe_allow_html=True)
     
-    # 12. Sección para exportar a PDF
-    st.markdown('<div style="font-size: 18px; font-weight: bold; margin-top: 30px; margin-bottom: 20px; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px;">Exportar Análisis</div>', unsafe_allow_html=True)
-    
-    # Añadir foto del jugador para el PDF si existe
-    if info_jugador:
-        ruta_foto = obtener_foto_jugador(info_jugador.get("id"))
-        if ruta_foto and os.path.exists(ruta_foto):
-            with open(ruta_foto, "rb") as img_file:
-                charts['foto_jugador'] = base64.b64encode(img_file.read()).decode()
-    
-    # Generar PDF con datos acumulados
-    pdf_data = generar_pdf_html(
-        jugador_seleccionado,
-        info_jugador,
-        total_stats,
-        precision_pases,
-        indice_rendimiento,
-        len(datos_partidos),
-        partidos_info,
-        charts,
-        es_portero
-    )
-    
-    # Botón para descargar
-    nombre_archivo = f"{jugador_seleccionado.replace(' ', '_')}_analisis_acumulado.pdf"
-    st.markdown(crear_boton_descargar_pdf(pdf_data, nombre_archivo), unsafe_allow_html=True)
-    
-    # 13. Botón para volver atrás
+    # 12. Botón para volver atrás
     if st.button("⬅️ Volver al Menú Principal", key="volver_btn"):
         st.session_state["menu_seleccionado"] = "inicio"
         st.rerun()
