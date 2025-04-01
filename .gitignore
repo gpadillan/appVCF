@@ -1,4 +1,24 @@
+# Entorno virtual
 vcf_env/
+
+# Archivos de caché de Python
 __pycache__/
 *.py[cod]
+
+# Archivos ocultos de Mac
 .DS_Store
+
+# Archivos de datos (Excel, CSV)
+*.xlsx
+*.xls
+*.csv
+
+# Imágenes
+*.jpg
+*.jpeg
+*.png
+
+# Carpetas donde podrían estar esos archivos
+data/
+uploads/
+imagenes/
