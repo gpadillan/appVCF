@@ -169,6 +169,31 @@ def pagina_subir_archivo():
     # Asegurarse de que tenemos la lista de archivos
     if "archivos_subidos" not in st.session_state:
         st.session_state.archivos_subidos = escanear_archivos()
+    
+    # Inicializar la clave para el archivo a eliminar si no existe
+    if "archivo_a_eliminar" not in st.session_state:
+        st.session_state.archivo_a_eliminar = None
+    
+    # Si hay un archivo para eliminar, procesarlo
+    if st.session_state.archivo_a_eliminar:
+        # Buscar el archivo en la lista
+        archivo_a_eliminar = None
+        for archivo in st.session_state.archivos_subidos:
+            if archivo['id'] == st.session_state.archivo_a_eliminar:
+                archivo_a_eliminar = archivo
+                break
+        
+        if archivo_a_eliminar:
+            try:
+                os.remove(archivo_a_eliminar['ruta'])
+                st.success(f"Archivo {archivo_a_eliminar['nombre_original']} eliminado correctamente.")
+            except Exception as e:
+                st.error(f"Error al eliminar el archivo: {str(e)}")
+            
+            # Limpiar el valor y reescanear
+            st.session_state.archivo_a_eliminar = None
+            st.session_state.archivos_subidos = escanear_archivos()
+            st.rerun()
             
     # Mostrar archivos subidos
     st.subheader("Archivos Subidos")
@@ -185,24 +210,25 @@ def pagina_subir_archivo():
     if not archivos_a_mostrar:
         st.info("No hay archivos subidos.")
     else:
-        for i, archivo in enumerate(archivos_a_mostrar):
-            col1, col2, col3 = st.columns([3, 1, 1])
-            with col1:
-                st.write(f"{i+1}. {archivo['nombre_original']} ({archivo['equipo']})")
-            with col2:
-                st.write(f"Subido: {archivo['fecha_subida']}")
-            with col3:
-                if st.button("Eliminar", key=f"del_{archivo['id']}"):
-                    # Eliminar el archivo
-                    try:
-                        os.remove(archivo['ruta'])
-                        st.success(f"Archivo {archivo['nombre_original']} eliminado correctamente.")
-                    except Exception as e:
-                        st.error(f"Error al eliminar el archivo: {str(e)}")
-                    
-                    # Reescanear el directorio para actualizar la lista
-                    st.session_state.archivos_subidos = escanear_archivos()
-                    st.rerun()
+        # Crear una tabla para mostrar los archivos
+        cols = st.columns([3, 2, 2, 1])
+        cols[0].write("**Nombre del archivo**")
+        cols[1].write("**Equipo**")
+        cols[2].write("**Fecha de subida**")
+        cols[3].write("**Acciones**")
+        
+        for archivo in archivos_a_mostrar:
+            cols = st.columns([3, 2, 2, 1])
+            cols[0].write(archivo['nombre_original'])
+            cols[1].write(archivo['equipo'])
+            cols[2].write(archivo['fecha_subida'])
+            
+            # Función de callback para marcar el archivo a eliminar
+            def set_file_to_delete(file_id=archivo['id']):
+                st.session_state.archivo_a_eliminar = file_id
+            
+            # Botón para eliminar
+            cols[3].button("🗑️", key=f"delete_{archivo['id']}", on_click=set_file_to_delete)
     
     # Botón para volver atrás
     if st.button("Atrás"):
