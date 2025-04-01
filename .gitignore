@@ -22,3 +22,6 @@ __pycache__/
 data/
 uploads/
 imagenes/
+
+# Directorio de archivos subidos de la aplicación
+uploaded_files/
